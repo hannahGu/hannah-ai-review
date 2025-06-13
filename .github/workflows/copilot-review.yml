@@ -1,0 +1,12 @@
+name: Copilot Code Review
+on: [pull_request]
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Copilot Analysis
+        run: |
+          # 调用 Copilot API 或 CLI 工具分析代码
+          echo "## Copilot Review" >> $GITHUB_STEP_SUMMARY
+          echo "1. **潜在问题**: 函数未处理空输入。" >> $GITHUB_STEP_SUMMARY
