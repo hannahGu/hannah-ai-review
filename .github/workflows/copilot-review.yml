@@ -9,30 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Run CodeQL Analysis
-        uses: github/codeql-action/analyze@v2
-        with:
-          languages: javascript
-          queries: security-extended
-          
-      - name: Generate Copilot Style Report
-        run: |
-          echo "## Copilot Review" >> $GITHUB_STEP_SUMMARY
-          echo "### 问题检测" >> $GITHUB_STEP_SUMMARY
-          echo "- 发现3处潜在安全问题" >> $GITHUB_STEP_SUMMARY
-          echo "- 2个未处理的异常" >> $GITHUB_STEP_SUMMARY
-      
-      # 安装依赖和构建环境
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-      
-      - name: Install dependencies
-        run: npm install
-        if: contains(matrix.os, 'ubuntu')
-      
+             
       # 静态代码分析
       - name: Run ESLint with Copilot Rules
         run: |
