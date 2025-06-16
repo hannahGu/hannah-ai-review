@@ -5,18 +5,23 @@ permissions:
   security-events: write
 
 jobs:
-  review:
+  analyze:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-             
-      - name: Run GitHub Code Scanning
-        uses: github/codeql-action/analyze@v2
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 必须先初始化CodeQL
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
         with:
           languages: javascript
           queries: security-extended
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
         
-   
+  
       # 安全扫描
       - name: Run npm audit
         run: npm audit
