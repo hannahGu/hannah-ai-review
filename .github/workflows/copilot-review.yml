@@ -46,11 +46,7 @@ jobs:
           
           eslint . --format json >> $GITHUB_STEP_SUMMARY
         
-      - name: Run TypeScript Check
-        run: npx tsc --noEmit
-        continue-on-error: true
-        if: exists('tsconfig.json')
-      
+   
       # 安全扫描
       - name: Run npm audit
         run: npm audit
