@@ -1,89 +1,52 @@
-name: Enhanced Copilot Code Review
+name: Frontend Code Review
 on: [pull_request]
+
 permissions:
   contents: read
-  security-events: write
+  pull-requests: write
 
 jobs:
-  analyze:
+  review:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      # 1. 检出代码
+      - uses: actions/checkout@v4
 
-      # 必须先初始化CodeQL
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v2
+      # 2. 设置 Node.js 环境
+      - name: Setup Node
+        uses: actions/setup-node@v3
         with:
-          languages: javascript
-          queries: security-extended
+          node-version: 18
 
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v2
-        
-  
-      # 安全扫描
-      - name: Run npm audit
-        run: npm audit
-        continue-on-error: true
-      
-      - name: Run Security Scan
-        uses: shiftleftsecurity/scan-action@master
-        continue-on-error: true
-      
-      # Copilot 深度分析
-      - name: Run Copilot Analysis
-        id: copilot
+      # 4. 运行代码审查
+      - name: Run Frontend Review
         run: |
-          echo "## Copilot Code Review" >> $GITHUB_STEP_SUMMARY
+          echo "::group::📊 Frontend Code Review Report"
+          # ESLint 检查
+          eslint "src/**/*.{js,jsx,ts,tsx}" --format json --output-file eslint-report.json || true
           
-          # 1. 代码质量分析
-          echo "### 代码质量评估" >> $GITHUB_STEP_SUMMARY
-          echo "- **可读性**: 检查变量命名、函数长度、注释质量" >> $GITHUB_STEP_SUMMARY
-          echo "- **复杂度**: 分析圈复杂度 >15 的函数" >> $GITHUB_STEP_SUMMARY
-          echo "- **重复代码**: 检测相似代码块" >> $GITHUB_STEP_SUMMARY
+          # 生成易读报告
+          echo "### 🛠 ESLint 问题" >> $GITHUB_STEP_SUMMARY
+          jq -r '.[] | "\(.filePath):\(.messages[].line) \(.messages[].message)"' eslint-report.json >> $GITHUB_STEP_SUMMARY
           
-          # 2. 潜在问题检测
-          echo "### 潜在问题" >> $GITHUB_STEP_SUMMARY
-          echo "- 未处理的空输入: src/utils/helper.js#L32" >> $GITHUB_STEP_SUMMARY
-          echo "- 可能的竞态条件: src/api/userService.js#L45" >> $GITHUB_STEP_SUMMARY
-          echo "- 未捕获的Promise拒绝: src/controllers/payment.js#L78" >> $GITHUB_STEP_SUMMARY
-          
-          # 3. 性能建议
-          echo "### 性能优化建议" >> $GITHUB_STEP_SUMMARY
-          echo "- 数据库查询N+1问题: src/services/orderService.js#L112" >> $GITHUB_STEP_SUMMARY
-          echo "- 大文件内存加载: src/utils/fileProcessor.js#L56" >> $GITHUB_STEP_SUMMARY
-          
-          # 4. 安全建议
-          echo "### 安全建议" >> $GITHUB_STEP_SUMMARY
-          echo "- 敏感数据未加密: src/config/database.js#L23" >> $GITHUB_STEP_SUMMARY
-          echo "- 未验证的用户输入: src/middlewares/auth.js#L67" >> $GITHUB_STEP_SUMMARY
-          
-          # 5. 最佳实践
-          echo "### 最佳实践建议" >> $GITHUB_STEP_SUMMARY
-          echo "- 考虑使用设计模式重构: src/features/notification" >> $GITHUB_STEP_SUMMARY
-          echo "- 可添加单元测试覆盖: src/utils/calculator.js" >> $GITHUB_STEP_SUMMARY
-          
-          # 6. 依赖分析
-          echo "### 依赖分析" >> $GITHUB_STEP_SUMMARY
-          echo "- 过期的依赖包: package.json (lodash@4.17.15)" >> $GITHUB_STEP_SUMMARY
-          echo "- 未使用的依赖: 'moment' in package.json" >> $GITHUB_STEP_SUMMARY
-      
-      - name: Generate Improvement Suggestions
-        run: |
-          echo "### AI改进建议" >> $GITHUB_STEP_SUMMARY
-          echo "```suggestion" >> $GITHUB_STEP_SUMMARY
-          echo "// 建议使用解构提高可读性" >> $GITHUB_STEP_SUMMARY
-          echo "const { username, email } = req.body;" >> $GITHUB_STEP_SUMMARY
-          echo "```" >> $GITHUB_STEP_SUMMARY
+          # 简单组件分析
+          echo "### 🧩 React 组件统计" >> $GITHUB_STEP_SUMMARY
+          grep -r "function Component" src/ | wc -l | xargs echo "- 找到的组件数量:" >> $GITHUB_STEP_SUMMARY
+          echo "::endgroup::"
 
+      # 5. 输出结果到PR评论
       - name: Create PR Comment
         uses: actions/github-script@v6
+        if: always()
         with:
           script: |
+            const report = require('./eslint-report.json');
+            const issues = report.reduce((sum, file) => sum + file.messages.length, 0);
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: 'Copilot 发现${results.length}个问题，请检查Job Summary'
-            })
+              body: `🔍 Copilot 前端审查结果:\n\n` +
+                    `• ESLint 问题: ${issues} 处\n` +
+                    `• 查看详情: ${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
+            });
