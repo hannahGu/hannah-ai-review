@@ -10,18 +10,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
              
-      # 静态代码分析
-      - name: Run ESLint with Copilot Rules
-        run: |
-          npm install eslint @github/eslint-plugin-copilot
-          echo "module.exports = {
-            plugins: ['@github/copilot'],
-            rules: {
-              '@github/copilot/no-dangerous-code': 'error'
-            }
-          }" > .eslintrc.js
-          
-          eslint . --format json >> $GITHUB_STEP_SUMMARY
+      - name: Run GitHub Code Scanning
+        uses: github/codeql-action/analyze@v2
+        with:
+          languages: javascript
+          queries: security-extended
         
    
       # 安全扫描
