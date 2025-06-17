@@ -102,9 +102,3 @@ jobs:
             }' > ai-report.json
           
           jq '.choices[0].message.content' ai-report.json >> $GITHUB_STEP_SUMMARY
-
-      - name: Run CodeRabbit (第三方AI审查)
-        uses: coderabbit-ai/ai-pr-reviewer@v1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          openai_api_key: ${{ secrets.OPENAI_KEY }}
