@@ -17,6 +17,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 18
+
       - name: Install ESLint
         run: npm install eslint@8.56.0
 
@@ -61,3 +62,49 @@ jobs:
                     `• ESLint 问题: ${issues} 处\n` +
                     `• 查看详情: ${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
             });
+
+      - name: Add AI Review Comments
+        uses: actions/github-script@v6
+        with:
+          script: |
+            // 模拟AI建议（实际需接入LLM API）
+            const suggestions = [
+              {
+                path: 'src/App.js',
+                line: 12,
+                body: "建议使用 `useCallback` 优化性能：\n```suggestion\nconst handleClick = useCallback(() => {...}, []);\n```"
+              }
+            ];
+            
+            await Promise.all(suggestions.map(suggestion => 
+              github.rest.pulls.createReviewComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number,
+                commit_id: context.sha,
+                path: suggestion.path,
+                line: suggestion.line,
+                body: suggestion.body
+              })
+            ));
+
+      - name: Analyze with OpenAI
+        run: |
+          curl https://api.openai.com/v1/chat/completions \
+            -H "Authorization: Bearer ${{ secrets.OPENAI_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "model": "gpt-4",
+              "messages": [{
+                "role": "user",
+                "content": "Review this code:\n```$(cat src/App.js)```\nFocus on: 1. Performance 2. Readability"
+              }]
+            }' > ai-report.json
+          
+          jq '.choices[0].message.content' ai-report.json >> $GITHUB_STEP_SUMMARY
+
+      - name: Run CodeRabbit (第三方AI审查)
+        uses: coderabbit-ai/ai-pr-reviewer@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          openai_api_key: ${{ secrets.OPENAI_KEY }}
