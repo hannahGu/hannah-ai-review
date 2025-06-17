@@ -25,7 +25,9 @@ jobs:
           npx eslint src --max-warnings 0 \
             --rule 'react-hooks/exhaustive-deps: error' \
             --rule 'react/no-danger: error' \
-            --format json --output-file eslint-report.json
+            --format json --output-file eslint-report.json || true
+          # 确保报告文件存在
+          [ -s "eslint-report.json" ] || echo '[]' > eslint-report.json
 
       # 4. 运行代码审查
       - name: Run Frontend Review
