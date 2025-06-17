@@ -17,7 +17,9 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 18
-      
+      - name: Install ESLint
+        run: npm install eslint@8.56.0
+
       - name: Run ESLint with Strict Rules
         run: |
           npx eslint src --max-warnings 0 \
